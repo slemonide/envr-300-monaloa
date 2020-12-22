@@ -1,195 +1,226 @@
+#### Exploring linear models for prediction
 # -*- coding: utf-8 -*-
 
 # Run this app with `python app3.py` and
 # visit http://127.0.0.1:8050/ in your web browser.
 # documentation at https://dash.plotly.com/ 
 
-# based on app3.py and ideas at "Dash App With Multiple Inputs" in https://dash.plotly.com/basic-callbacks
+# based on ideas at "Dash App With Multiple Inputs" in https://dash.plotly.com/basic-callbacks
 # plotly express line parameters via https://plotly.com/python-api-reference/generated/plotly.express.line.html#plotly.express.line
 
 from flask import Flask
 from os import environ
 
+import pandas as pd
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-import plotly.express as px
+# plotly express could be used for simple applications
+# but this app needs to build plotly graph components separately 
 import plotly.graph_objects as go
 from dash.dependencies import Input, Output
 import numpy as np
-from numpy import random
-import math #needed for definition of pi
+import pandas as pd
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 server = Flask(__name__)
 app = dash.Dash(
     server=server,
-    url_base_pathname=environ.get('JUPYTERHUB_SERVICE_PREFIX', '/')
+    url_base_pathname=environ.get('JUPYTERHUB_SERVICE_PREFIX', '/'),
+    external_stylesheets=external_stylesheets
 )
 
+##################################
+# Fetch and prep the data
+# read in the data from the prepared CSV file. 
+co2_data_source = "./data/monthly_in_situ_co2_mlo.csv"
+co2_data_full = pd.read_csv(
+    co2_data_source, skiprows=np.arange(0, 56), na_values="-99.99"
+)
+
+co2_data_full.columns = [
+    "year", "month", "date_int", "date", "raw_co2", "seasonally_adjusted",
+    "fit", "seasonally_adjusted_fit", "co2 filled", "seasonally_adjusted_filled" 
+]
+
+# for handling NaN's see https://pandas.pydata.org/pandas-docs/stable/user_guide/missing_data.html
+co2_data = co2_data_full.dropna()
+
+# A linear model with slope and intercept to predict CO2
+def predict_co2(slope, intercept, initial_date, prediction_date):
+    a = slope * (prediction_date-initial_date) + intercept
+    
+    return a
+
+##################################
+# Lay out the page 
 app.layout = html.Div([
+# Introduction
     dcc.Markdown('''
-        ### Noisy sine wave on a linear trend
+        ### Approximate linear models for CO2 at MonaLoa, Hawaii
 
-        #### Purpose
+        #### Instructions 
 
-        Demonstrate a synthetic signal consisting of _data + random noise + a linear trend_. 
-        Also show effect of smoothing the noisy signal. 
-        Signal is sine wave with adjustable samples/cycle and smoothing is an adjustable N-pt moving avg. (i.e. a N-pt boxcar convolution). 
-        Sine wave is plotted as points while smoothed is plotted as lines.
+        Adjust straight line's slope and intercept to fit a "linear model" to the first 5 years of data, then again to most recent 5 years of data. 
+        Do these two linear approximations to the process predict the same CO2 concentration
+        for the year 2030? Predicted value in ppm is given in the plot title above the graph. 
+        _(NOTE: interactive graph controls appear when mouse is over the graph.)_
 
-        #### Instructions
-
-        Explore the dashboard and its controls. 
-        Note that figure-viewing controls in the figure's top-right corner only appear when your mouse is within the figure. 
-        As examples, click 'Autoscale' if graphs are off scale, or use "Reset axes to return to original scales.
-        Zoom within the graph using click and drag. Try it out! 
-
-        ----------
+        Smaller slope values "flatten" the line. Smaller line intercepts drop the line down. 
+        If the orange line is not visible display all data, bring line to roughly the right place
+        and then change to first or last 5 years of data to fine tune your linear fit. 
+        
         '''),
-
-# slider or checklist details at https://dash.plotly.com/dash-core-components
-# checkbox can be lumped together but then logic in "update_graph" is messier.
-# Content can be delivered using html, but markdown is simpler. 
+    # controls for plot
     html.Div([
-        dcc.Markdown('''
-        **Select signal components**
-        '''),
-        dcc.Checklist(
-            id='sine_checkbox',
-            options=[
-                {'label': 'SineWave', 'value': 'sine'}
-            ],
-            value=['sine']
+        dcc.Markdown(''' **_Slope:_** '''),
+        dcc.Slider(
+            id='line_slope', min=0, max=3, step=0.05, value=2,
+            marks={0:'0', 0.5:'0.5', 1:'1', 1.5:'1.5', 2:'2', 2.5:'2.5', 3:'3'},
+            tooltip={'always_visible':True, 'placement':'topLeft'}
         ),
-        dcc.Checklist(
-            id='noise_checkbox',
-            options=[
-                {'label': 'Noise', 'value': 'noise'},
-            ],
-            value=['noise']
+    ], style={'width': '48%', 'display': 'inline-block'}),
+    
+    html.Div([
+        dcc.Markdown(''' **_Intercept:_** '''),
+        dcc.Slider(
+            id='line_intcpt', min=250, max=320, step=0.25,value=312,
+            marks={250:'250', 260:'260', 270:'270', 280:'280', 290:'290', 300:'300', 310:'310', 320:'320'},
+            tooltip={'always_visible':True, 'placement':'topLeft'}
         ),
-        dcc.Checklist(
-            id='trend_checkbox',
+    ], style={'width': '48%', 'display': 'inline-block'}),
+    
+# start and end year of plot 
+# NOT NEEDED IF USING 1ST AND LAST 5 YEAR RADIO BUTTONS.   
+#    html.Div([
+#        dcc.Markdown(''' _Start:_ '''),
+#        dcc.Slider(
+#            id='start', min=1958, max=2019, step=1, value=1958,
+#            marks={1960:'1960', 1970:'1970', 1980:'1980', 1990:'1990', 2000:'2000', 2010:'2010',2020:'2020'},
+#            tooltip={'always_visible':True, 'placement':'topLeft'}
+#        ),
+#    ], style={'width': '48%', 'display': 'inline-block'}),
+#    
+#    html.Div([
+#        dcc.Markdown(''' _End (**> Start!**):_ '''),
+#        dcc.Slider(
+#            id='end', min=1960, max=2030, step=1, value=1963,
+#            marks={1960:'1960', 1970:'1970', 1980:'1980', 1990:'1990', 2000:'2000', 2010:'2010',2020:'2020'},
+#            tooltip={'always_visible':True, 'placement':'topLeft'}
+#        ),
+#    ], style={'width': '48%', 'display': 'inline-block'}),
+
+    html.Div([
+        dcc.Markdown(''' **_Signal type:_** '''),
+         dcc.RadioItems(
+            id='Data_type',
             options=[
-                {'label': 'Trend', 'value': 'trend'},                
+            {'label': 'Seasonally adjusted data', 'value': 'adj'},
+            {'label': 'Raw data', 'value': 'raw'}
             ],
-            value=[]
+            value='adj'
         ),
-        dcc.Markdown('''
-        **Check to show smoothed**
-        '''),
-        dcc.Checklist(
-            id='smooth_checkbox',
-            options=[
-                {'label': 'Smoothed', 'value': 'smooth'}
-            ],
-            value=[]
-        )
     ], style={'width': '48%', 'display': 'inline-block'}),
 
-    html.Div([
-        # html.P('Set signal parameters'),
-        html.Label('No. cycles:'),
-        dcc.Slider(id='ncycles', min=2, max=10, value=3, step=0.5,
-            marks={2:'2', 4:'4', 6:'6', 8:'8', 10:'10'}
-            # tooltip={'always_visible':True, 'placement':'topLeft'}
+# Done this way to make easier to set appropriate y-axis limits
+# Could use sliders commented out above if y-axis limits are set by calculating range for years-span
+     html.Div([
+       # dcc.Markdown(''' 
+       # _Choose first or last 5 years of data_         
+       # '''),
+         dcc.RadioItems(
+            id='zone',
+            options=[
+            {'label': '1st 5 years', 'value': '1st5yrs'},
+            {'label': 'last 5 years', 'value': 'last5yrs'},
+            {'label': 'All data', 'value': 'alldata'}
+            ],
+            value='1st5yrs'
         ),
-        html.Label('Noise level'),
-        dcc.Slider(id='noiselevel', min=0.0, max=5.0, value=1.0, step=0.25,
-            marks={0:'0', 1:'1', 2:'2', 3:'3', 4:'4', 5:'5'}
-            # tooltip={'always_visible':True, 'placement':'topLeft'}
-        ),
-        html.Label('N-pt smoothing'),
-        dcc.Slider(id='smoothwin', min=1.0, max=15.0, value=5.0, step=2.0,
-            marks={1:'1', 3:'3', 5:'5', 7:'7', 9:'9', 11:'11', 13:'13', 15:'15'}
-        )
-    ], style={'width': '48%', 'display': 'inline-block'}
-    ),
+    ], style={'width': '48%', 'display': 'inline-block'}),
 
-    dcc.Graph(id='indicator-graphic'),
+# after controls, place plot
+    dcc.Graph(id='graph'),
 
+# closing text
     dcc.Markdown('''
-        ----
-        
-        ### Questions students could consider
+    -------
 
-        These are examples of questions to drive teaching discussions or learning assignments. Questions are not necessarily well-posed. Also, most are judgement calls - which is part of the point!
-        
-        1. How much noise does it take to obscure the fact that the signal is a nice sinewave?
-        2. "Smoothing" is a simple "boxcar", or 5-point moving average. How much MORE noise can be managed before the smoothed signal begins to loose its useful character?
-        3. If there are only 2 or 3 cycles of signal, can you tell there is a trend? What are the implications for the "length" of your data set or series of measurements? 
-        4. Does noise obscure the fact that there is a superimposed linear trend? 
-        5. How much data (i.e. how long do you have to take measurments) before the trend is observed? 
-        6. Does this necessary length for measuring the phenomenon vary if there is more noise? 
-        7. Pose your own question AND answer it.  
-        ''')
+    ### Discussion
+
+    Within small enough regions, the data follow an approximately linear trend, 
+    so a linear model has some predictive power. To consider these questions, 
+    revisit the linear fit for "early" and "recent" 5 year periods.
+    
+    1. Out to which year would you trust the model built with the data from 1958 - 1963? 
+    2. Where does it start to break down?
+    3. How far out would you trust our predictions with data from 2015 - 2020? Would you trust our model to predict CO$_2$ in the year 2050? 
+    4. How might you approach building a model to fit all of our data? 
+    5. Given what the "raw data" look like, what do you think "seasonaly adjusted" means? 
+    6. Use the graph's "Camera" icon to make a PNG file of your graph with all data and linear model fitting the first 5 years.
+    7. Do the same for your graph with linear model fitting the last 5 years of data. Hand both in for assessment. 
+
+    ### Attribution
+    
+    * Derived from [L. Heagy's presentation](https://ubc-dsci.github.io/jupyterdays/sessions/heagy/widgets-and-dashboards.html) at UBC's Jupyter Days 2020, which in turn is adapted from the [Intro-Jupyter tutorial from ICESat-2Hackweek](https://github.com/ICESAT-2HackWeek/intro-jupyter), which has contributions from: [Shane Grigsby (@espg)](https://github.com/espg), [Lindsey Heagy (@lheagy)](https://github.com/lheagy), 
+    [Yara Mohajerani (@yaramohajerani)](https://github.com/yaramohajerani), 
+    and [Fernando Pérez (@fperez)](https://github.com/fperez). 
+    * This version, code by F. Jones.
+    * Original data are at the [Scripps CO2 program](https://scrippsco2.ucsd.edu/data/atmospheric_co2/primary_mlo_co2_record.html). See the NOAA [Global Monitoring Laboratory](https://www.esrl.noaa.gov/gmd/ccgg/trends/) for additional details.
+    
+    '''),
 ], style={'width': '900px'}
 )
 
-def moving_avg(x, w):
-    y = np.convolve(x, np.ones(w), 'valid') / w
-    
-    # applying "roll" is necessary so the timeseries are aligned over the correct x-axis values. 
-    # this is probably easier using data frames when x-axis will be the index frame.
-    z = np.roll(y, int(w/2))
-    
-    # roll wraps end points back to first points, so set these to zero; a cludge, but works for now.
-    wrap = int((w)/2)
-    z[:wrap] = 0
-    return z
-
+# end of layout and definition of controls.
+##################################
 # The callback function with it's app.callback wrapper.
 @app.callback(
-    Output('indicator-graphic', 'figure'),
-    Input('ncycles', 'value'),
-    Input('noiselevel', 'value'),
-    Input('smoothwin', 'value'),
-    Input('sine_checkbox', 'value'),
-    Input('noise_checkbox', 'value'),
-    Input('trend_checkbox', 'value'),
-    Input('smooth_checkbox', 'value')  
-    )    
-def update_graph(ncycles, noiselevel, smoothwin, sine_checkbox, noise_checkbox, trend_checkbox, smooth_checkbox,):
-    # make a noisy sine wave on a linear trend
-    # build the X-axis first, then the three time series: 
-    xpoints = np.arange(0, ncycles, 0.05)
-    N=len(xpoints)   # this may not be the most sophisticated approach 
-    ypoints = np.sin(xpoints*2*math.pi)
-    randpoints = noiselevel * (random.rand(N)-.5)
-    trendpoints = 0.4*xpoints + 0.5
+    Output('graph', 'figure'),
+    Input('line_slope', 'value'),
+    Input('line_intcpt', 'value'),
+    Input('Data_type', 'value'),
+#    Input('start', 'value'),
+#    Input('end', 'value'),
+    Input('zone', 'value'),
+    )
+#def update_graph(line_slope, line_intcpt, Data_type, start, end, zone):
+def update_graph(line_slope, line_intcpt, Data_type, zone):
+# construct all the figure's components
+    plot = go.Figure()
 
-    a1 = a2 = a3 = 0
-    if sine_checkbox == ['sine']: a1 = 1
-    if noise_checkbox == ['noise']: a2 = 1
-    if trend_checkbox == ['trend']: a3 = 1
+    l1 = line_slope * (co2_data.date - np.min(co2_data.date)) + line_intcpt
+
+    if Data_type == 'raw':
+        plot.add_trace(go.Scatter(x=co2_data.date, y=co2_data.raw_co2, mode='markers',
+            line=dict(color='MediumTurquoise'), name="CO2"))
+    if Data_type == 'adj':
+        plot.add_trace(go.Scatter(x=co2_data.date, y=co2_data.seasonally_adjusted, mode='markers',
+            line=dict(color='MediumTurquoise'), name="CO2"))
     
-    if a1 or a2 or a3: sumpoints = a1*ypoints + a2*randpoints + a3*trendpoints
-    else: sumpoints = []
+    plot.add_trace(go.Scatter(x=co2_data.date, y=l1, mode='lines',
+        line=dict(color='SandyBrown'), name="linear fit"))
+    
+    plot.update_layout(xaxis_title='Year', yaxis_title='ppm')
+#    plot.update_xaxes(range=[start, end])
+    
+    if zone == '1st5yrs':
+        plot.update_xaxes(range=[1958, 1963])
+        plot.update_yaxes(range=[312, 322])
 
-    if smooth_checkbox == ['smooth']:
-        smoothpoints = moving_avg(sumpoints,smoothwin)
-    else:
-        smoothpoints = []
-        
-# constructing the figure more directly than using plotly.express
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=xpoints, y=sumpoints,
-                    mode='lines',
-                    name='signal'))
-    fig.add_trace(go.Scatter(x=xpoints, y=smoothpoints,
-                    mode='lines',
-                    name='smoothed'))
+    if zone == 'last5yrs':
+        plot.update_xaxes(range=[2015, 2020])
+        plot.update_yaxes(range=[395, 415])
+    
+    if zone == 'alldata':
+        plot.update_xaxes(range=[1955, 2023])
+        plot.update_yaxes(range=[310, 440])
 
-    fig.update_layout(xaxis_title='Time', yaxis_title='Value')
-    fig.update_xaxes(range=[0, 10])
-    fig.update_yaxes(range=[-2, 7])
+    predicted_co2 = predict_co2(line_slope, line_intcpt, 1958, 2030)
+    plot.layout.title = f"Predicted CO2 for {2030}: {predicted_co2:1.2f} ppm."
 
-# The plotly express approach: Not sure how to add to lines without using dataframes, but direct approach above works fine.
-#    fig = px.line(x=xpoints, y=sumpoints, labels={'x':'t', 'y':'sin(t)'}, range_x=(0,10), range_y=(-2,7))
-
-    return fig
+    return plot
 
 if __name__ == '__main__':
-    app.run_server(debug=True, host='0.0.0.0', port=8050)
+    app.run_server(debug=True)
