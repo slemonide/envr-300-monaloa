@@ -16,9 +16,7 @@ app = dash.Dash(
 app.layout = html.Div([
     dcc.Store(id='store'),
 
-    html.Div("""Hello world. I can auto update! One more test! Sorry to bother you... One more test... And again. Is it actually working??
-    Did you know you can do `docker pull` directly with a github repository? No need for docker hub! Well, it works for this repo.
-    """),
+    html.Div("Hello world."),
 
     html.Button('Count', id='count'),
     html.Button('Clear', id='clear'),
