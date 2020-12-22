@@ -8,6 +8,8 @@
 # plotly express line parameters via https://plotly.com/python-api-reference/generated/plotly.express.line.html#plotly.express.line
 
 from flask import Flask
+from os import environ
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
