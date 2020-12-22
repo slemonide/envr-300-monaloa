@@ -10,6 +10,9 @@ COPY requirements.txt /wd/
 # Install requirements
 RUN pip3 install -r requirements.txt
 
+# Copy data
+COPY data /wd/data
+
 # Copy code
 COPY app.py /wd/
 
