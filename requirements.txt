@@ -1,4 +1,4 @@
 dash
-dash-extensions
 gunicorn
 flask
+pandas
