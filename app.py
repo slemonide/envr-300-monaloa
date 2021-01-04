@@ -58,18 +58,24 @@ def predict_co2(slope, intercept, initial_date, prediction_date):
 app.layout = html.Div([
 # Introduction
     dcc.Markdown('''
-        ### Approximate linear models for CO2 at MonaLoa, Hawaii
+        ### Approximate linear models for CO2 at Mauna Loa, Hawaii
 
         #### Instructions 
 
-        Adjust straight line's slope and intercept to fit a "linear model" to the first 5 years of data, then again to most recent 5 years of data. 
-        Do these two linear approximations to the process predict the same CO2 concentration
-        for the year 2030? Predicted value in ppm is given in the plot title above the graph. 
-        _(NOTE: interactive graph controls appear when mouse is over the graph.)_
+        The plot below shows measurements of monthly-averaged CO2 concentrations (in ppm), 
+        from Mauna Loa Observatory, spanning from 1958-2020. Initially, just the first 5 years of data are shown, but you can
+        select whether to see only the first 5 years of data, only the last 5 years, or the whole data set.
+        An adjustable linear trend (orange line) is also plotted. 
+        
+        Your task is to adjust the trend by changing its slope and intercept, 
+        to fit the straight line so it can represent a linear model for the *first 5 years* of data. Then you will do the same
+        to fit a linear model to the *most recent* 5 years of data. 
+        Do your two linear models predict the same CO2 concentrations for the year 2030? 
+        NOTE: the predicted value in ppm is given just above the graph. 
+        
+        (NOTE: interactive graph controls appear when your mouse is over the graph.) 
 
-        Smaller slope values "flatten" the line. Smaller line intercepts drop the line down. 
-        If the orange line is not visible display all data, bring line to roughly the right place
-        and then change to first or last 5 years of data to fine tune your linear fit. 
+        ----
         
         '''),
     # controls for plot
@@ -93,7 +99,7 @@ app.layout = html.Div([
     
 # start and end year of plot 
 # NOT NEEDED IF USING 1ST AND LAST 5 YEAR RADIO BUTTONS.   
-#    html.Div([
+#        html.Div([
 #        dcc.Markdown(''' _Start:_ '''),
 #        dcc.Slider(
 #            id='start', min=1958, max=2019, step=1, value=1958,
@@ -145,29 +151,29 @@ app.layout = html.Div([
 
 # closing text
     dcc.Markdown('''
-    -------
+        ----
+        #### Discussion and Questions
 
-    ### Discussion
+        Within relatively short time windows (e.g. 5 years), the linear model can represent a 
+        reasonable fit to the data, but it remains less clear how good the predictive power of 
+        this model is for longer periods. 
+        
+        To analyze this further, revisit the linear fit for "early" and "recent" 5 year periods and **answer the following**:
 
-    Within small enough regions, the data follow an approximately linear trend, 
-    so a linear model has some predictive power. To consider these questions, 
-    revisit the linear fit for "early" and "recent" 5 year periods.
+        1. Out to which year would you trust the model built for the window 1958 - 1963? In other words, where does this model start to break down?
+        2. How far out would you trust the model predictions with the model built for 2015 - 2020? Would you trust the model to predict CO_2 for the year 2050?
+        3. How might you approach building a model to fit all of the data (1958-2020)?
+        4. Given what the "raw data" look like, what do you think "seasonally adjusted data" means?
+        5. Use the graph's "Camera" icon to make a PNG file of your graph with all data and linear model fitting determined from the *first* 5 years.
+        6. Do the same for the case with linear model fitting from the *last* 5 years. Submit both PNG files for assessment.
+
+        ----
+        #### Attribution
     
-    1. Out to which year would you trust the model built with the data from 1958 - 1963? 
-    2. Where does it start to break down?
-    3. How far out would you trust our predictions with data from 2015 - 2020? Would you trust our model to predict CO$_2$ in the year 2050? 
-    4. How might you approach building a model to fit all of our data? 
-    5. Given what the "raw data" look like, what do you think "seasonaly adjusted" means? 
-    6. Use the graph's "Camera" icon to make a PNG file of your graph with all data and linear model fitting the first 5 years.
-    7. Do the same for your graph with linear model fitting the last 5 years of data. Hand both in for assessment. 
-
-    ### Attribution
-    
-    * Derived from [L. Heagy's presentation](https://ubc-dsci.github.io/jupyterdays/sessions/heagy/widgets-and-dashboards.html) at UBC's Jupyter Days 2020, which in turn is adapted from the [Intro-Jupyter tutorial from ICESat-2Hackweek](https://github.com/ICESAT-2HackWeek/intro-jupyter), which has contributions from: [Shane Grigsby (@espg)](https://github.com/espg), [Lindsey Heagy (@lheagy)](https://github.com/lheagy), 
-    [Yara Mohajerani (@yaramohajerani)](https://github.com/yaramohajerani), 
-    and [Fernando Pérez (@fperez)](https://github.com/fperez). 
-    * This version, code by F. Jones.
-    * Original data are at the [Scripps CO2 program](https://scrippsco2.ucsd.edu/data/atmospheric_co2/primary_mlo_co2_record.html). See the NOAA [Global Monitoring Laboratory](https://www.esrl.noaa.gov/gmd/ccgg/trends/) for additional details.
+        * Derived from [L. Heagy's presentation](https://ubc-dsci.github.io/jupyterdays/sessions/heagy/widgets-and-dashboards.html) at
+        UBC's Jupyter Days 2020, which in turn is adapted from the [Intro-Jupyter tutorial from ICESat-2Hackweek](https://github.com/ICESAT-2HackWeek/intro-jupyter). 
+        * This version, code by F. Jones.
+        * Original data are at the [Scripps CO2 program](https://scrippsco2.ucsd.edu/data/atmospheric_co2/primary_mlo_co2_record.html). See the NOAA [Global Monitoring Laboratory](https://www.esrl.noaa.gov/gmd/ccgg/trends/) for additional details.
     
     '''),
 ], style={'width': '900px'}
